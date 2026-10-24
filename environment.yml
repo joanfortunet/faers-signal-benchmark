@@ -1,0 +1,19 @@
+name: faers
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - pip
+  - duckdb
+  - python-duckdb
+  - pandas
+  - pyarrow
+  - numpy
+  - scipy
+  - scikit-learn
+  - statsmodels
+  - matplotlib
+  - requests
+  - jupyterlab
+  - pytest
+  - ruff
