@@ -4,7 +4,6 @@ channels:
 dependencies:
   - python=3.12
   - pip
-  - duckdb
   - python-duckdb
   - pandas
   - pyarrow
@@ -17,3 +16,5 @@ dependencies:
   - jupyterlab
   - pytest
   - ruff
+  - pip:
+      - -e .

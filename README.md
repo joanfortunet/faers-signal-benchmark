@@ -21,6 +21,29 @@ Pharmacovigilance relies on spontaneous reports to detect adverse drug reactions
 - **Evaluation:** AUC, average precision, precision@k, and time to detection using temporal validation.
 - **Stack:** Python, DuckDB/SQL, scikit-learn, statsmodels, Quarto, Streamlit, pytest, GitHub Actions.
 
+## Data
+
+- **Source:** FDA Adverse Event Monitoring System (AEMS, formerly FAERS), quarterly data extract files in ASCII format.
+- **Time window:** 2014 Q3 to 2026 Q2 (inclusive). Additional fields were introduced in 2014 Q3, so earlier files are not used.
+- **Download date:** 2026-10-24
+- **Note:** the files are raw and not cumulative. The same case can appear in several quarters, which is handled in the deduplication step.
+
+## Data pipeline
+
+Everything runs locally with DuckDB; no database server is needed.
+
+| Step | Command | What it does |
+|---|---|---|
+| 1. Download | `make download` | Downloads and unzips the quarterly files into `data/raw/` (skips quarters already there). |
+| 2. Load | `make load` | Loads every new quarter into `data/faers_warehouse.duckdb` as raw text tables, one transaction per quarter, logging loaded and rejected lines in `load_log`. |
+| 3. Transform | `make transform` | Runs the SQL steps in `sql/`: deduplication, name normalisation and the drug-event contingency table. |
+
+Main tables produced:
+
+- `demo_dedup`: one row per case, keeping only its latest version (most recent `fda_dt`, then highest `primaryid`, as recommended by the FDA) and excluding cases the FDA has deleted.
+- `drug_clean`, `reac_clean`, `outc_clean`: drugs, reactions (MedDRA preferred terms) and outcomes of the kept cases. Drug names use the active ingredient (`prod_ai`, or `drugname` if missing), in upper case, with biosimilar suffixes removed (`ADALIMUMAB-ADAZ` → `ADALIMUMAB`).
+- `drug_event_counts`: the 2x2 table (`a`, `b`, `c`, `d`) for every primary-suspect drug and event pair, the common input of all disproportionality methods.
+
 ## Project structure
 
 ```
@@ -35,8 +58,12 @@ Pharmacovigilance relies on spontaneous reports to detect adverse drug reactions
 
 ## Roadmap
 
-- [ ] Phase 0: Setup
+- [x] Phase 0: Setup
 - [ ] Phase 1: Data engineering
+  - [x] Download script
+  - [x] Raw load into DuckDB
+  - [x] Deduplication and contingency table
+  - [ ] Full 2014 Q3 – 2026 Q2 window loaded and checked
 - [ ] Phase 2: EDA and data quality
 - [ ] Phase 3: Methods
 - [ ] Phase 4: Evaluation
