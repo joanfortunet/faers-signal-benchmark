@@ -36,13 +36,19 @@ Everything runs locally with DuckDB; no database server is needed.
 |---|---|---|
 | 1. Download | `make download` | Downloads and unzips the quarterly files into `data/raw/` (skips quarters already there). |
 | 2. Load | `make load` | Loads every new quarter into `data/faers_warehouse.duckdb` as raw text tables, one transaction per quarter, logging loaded and rejected lines in `load_log`. |
-| 3. Transform | `make transform` | Runs the SQL steps in `sql/`: deduplication, name normalisation and the drug-event contingency table. |
+| 3. Transform | `make transform` | Runs the steps in `sql/` and `faers.normalize`: deduplication, drug name normalisation, classification of reactions and the drug-event contingency table. |
 
 Main tables produced:
 
 - `demo_dedup`: one row per case, keeping only its latest version (most recent `fda_dt`, then highest `primaryid`, as recommended by the FDA) and excluding cases the FDA has deleted.
 - `drug_clean`, `reac_clean`, `outc_clean`: drugs, reactions (MedDRA preferred terms) and outcomes of the kept cases. Drug names use the active ingredient (`prod_ai`, or `drugname` if missing), in upper case, with biosimilar suffixes removed (`ADALIMUMAB-ADAZ` → `ADALIMUMAB`).
-- `drug_event_counts`: the 2x2 table (`a`, `b`, `c`, `d`) for every primary-suspect drug and event pair, the common input of all disproportionality methods.
+- `drug_name_map`: salts and hydrates removed (`SERTRALINE HYDROCHLORIDE` → `SERTRALINE`, inorganic compounds kept) and combination components sorted (see `src/faers/normalize.py`).
+- `pt_class`: reactions that are not adverse reactions (medication errors, off-label use, lack of efficacy, product or device issues, exposures) are flagged with the patterns in `ref/non_clinical_pt_patterns.csv` and left out of the counts.
+- `drug_event_counts`: the 2x2 table (`a`, `b`, `c`, `d`) for every primary-suspect drug and clinical event pair, the common input of all disproportionality methods.
+
+## Exploratory analysis
+
+[`notebooks/01_eda.ipynb`](notebooks/01_eda.ipynb) describes the cleaned data (48 quarters, 19.0 M report rows → 16.2 M unique cases): who reports, missing values, top drugs and reactions, the share of non-clinical terms and how sparse the drug-event table is. It also shows a clear case of stimulated reporting (ranitidine, 46 % of reports filed by lawyers after the 2019–2020 NDMA recall).
 
 ## Project structure
 
@@ -63,8 +69,11 @@ Main tables produced:
   - [x] Download script
   - [x] Raw load into DuckDB
   - [x] Deduplication and contingency table
-  - [ ] Full 2014 Q3 – 2026 Q2 window loaded and checked
+  - [x] Full 2014 Q3 – 2026 Q2 window loaded and checked
 - [ ] Phase 2: EDA and data quality
+  - [x] Drug name normalisation (salts, combinations)
+  - [x] Non-clinical preferred terms excluded
+  - [x] EDA notebook
 - [ ] Phase 3: Methods
 - [ ] Phase 4: Evaluation
 - [ ] Phase 5: Case studies and communication

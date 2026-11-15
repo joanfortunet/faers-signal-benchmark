@@ -1,7 +1,8 @@
-"""Run the SQL steps that turn the raw tables into analysis-ready tables.
+"""Run the steps that turn the raw tables into analysis-ready tables.
 
-Each step is a plain .sql file in the sql/ folder, so it can also be read
-(and run by hand) in the DuckDB CLI or a notebook.
+Most steps are plain .sql files in the sql/ folder, so they can also be read
+(and run by hand) in the DuckDB CLI or a notebook. Drug name normalisation is
+a Python step (faers.normalize) because it is easier to read and test.
 
 Usage (from the repository root, after `python -m faers.load`):
 
@@ -15,28 +16,53 @@ from pathlib import Path
 import duckdb
 
 from faers.load import DB_PATH
+from faers.normalize import build_drug_name_map
 
-SQL_DIR = Path(__file__).resolve().parents[2] / "sql"
+ROOT = Path(__file__).resolve().parents[2]
+SQL_DIR = ROOT / "sql"
+REF_DIR = ROOT / "ref"
+
+# Reference files loaded as tables before the steps run.
+REFERENCE_TABLES = {
+    "ref_non_clinical_pt": "non_clinical_pt_patterns.csv",
+}
 STEPS = [
     "02_clean_deduplicate.sql",
-    "03_drug_event_counts.sql",
+    build_drug_name_map,
+    "03_classify_events.sql",
+    "04_drug_event_counts.sql",
 ]
 SUMMARY_TABLES = [
-    "raw_demo", "demo_dedup", "drug_clean", "reac_clean", "outc_clean",
-    "report_drug_event", "drug_event_counts",
+    "raw_demo", "demo_dedup", "drug_clean", "drug_name_map", "reac_clean", "pt_class",
+    "outc_clean", "report_drug_event", "drug_event_counts",
 ]
 
 
-def run_step(con, filename, sql_dir=SQL_DIR):
-    """Execute every statement of one .sql file."""
-    con.execute((sql_dir / filename).read_text())
+def load_reference(con, ref_dir=REF_DIR):
+    """Load the small CSV files of ref/ into ref_* tables."""
+    for table, filename in REFERENCE_TABLES.items():
+        con.execute(
+            f"CREATE OR REPLACE TABLE {table} AS "
+            "SELECT * FROM read_csv(?, header = true, all_varchar = true)",
+            [str(ref_dir / filename)],
+        )
 
 
-def run_all(con, sql_dir=SQL_DIR):
-    for filename in STEPS:
+def run_step(con, step, sql_dir=SQL_DIR):
+    """Run one step: a .sql file name or a Python function taking the connection."""
+    if callable(step):
+        step(con)
+    else:
+        con.execute((sql_dir / step).read_text())
+
+
+def run_all(con, sql_dir=SQL_DIR, ref_dir=REF_DIR):
+    load_reference(con, ref_dir)
+    for step in STEPS:
+        name = step if isinstance(step, str) else step.__name__
         start = time.time()
-        run_step(con, filename, sql_dir)
-        print(f"{filename}: done in {time.time() - start:.0f} s", flush=True)
+        run_step(con, step, sql_dir)
+        print(f"{name}: done in {time.time() - start:.0f} s", flush=True)
 
 
 def summary(con):

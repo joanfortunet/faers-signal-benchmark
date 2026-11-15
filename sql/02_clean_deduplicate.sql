@@ -3,6 +3,9 @@
 -- Input:  raw_demo, raw_drug, raw_reac, raw_outc, raw_deleted (from faers.load)
 -- Output: demo_dedup, drug_clean, reac_clean, outc_clean
 --
+-- drug_clean.drug_name is only cleaned text; salts and combinations are
+-- normalised afterwards in Python (faers.normalize -> drug_name_map).
+--
 -- Why deduplicate? FAERS files are not cumulative: every time a case is
 -- updated (new information, follow-up), a new version is published in a
 -- later quarter with the same caseid and a new primaryid. Counting every
@@ -53,7 +56,7 @@ WHERE version_rank = 1
 -- 2. Drugs of the kept reports.
 --    The join uses primaryid AND quarter: a few primaryids appear in two
 --    quarters, and we only want the rows published with the kept version.
---    drug is the active ingredient (prod_ai), falling back to the brand name
+--    drug_name is the active ingredient (prod_ai), falling back to the brand name
 --    (drugname) when prod_ai is empty, in upper case with clean spaces.
 --    Biosimilars carry a 4-letter FDA suffix (ADALIMUMAB-ADAZ, -ATTO...):
 --    it is removed so that all of them count as the same molecule.
@@ -67,7 +70,7 @@ SELECT DISTINCT
             COALESCE(NULLIF(TRIM(r.prod_ai), ''), r.drugname), '\s+', ' ', 'g'
         ), ' .')),
         '-[A-Z]{4}$', ''
-    )                               AS drug,
+    )                               AS drug_name,
     r.drugname,
     r.prod_ai
 FROM demo_dedup AS d

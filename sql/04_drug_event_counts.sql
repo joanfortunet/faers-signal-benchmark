@@ -1,6 +1,6 @@
--- Step 3: drug-event contingency table, the input of every disproportionality method.
+-- Step 4: drug-event contingency table, the input of every disproportionality method.
 --
--- Input:  demo_dedup, drug_clean, reac_clean (from 02_clean_deduplicate.sql)
+-- Input:  demo_dedup, drug_clean, drug_name_map, reac_clean, pt_class
 -- Output: report_drug_event, drug_event_counts
 --
 -- For every drug-event pair we need the classic 2x2 table:
@@ -11,8 +11,10 @@
 --                     n_event                       | n_total
 --
 -- Only the primary suspect drug (role_cod = 'PS') is used, the same choice
--- as in the exploratory query. The universe (n_total) is every deduplicated
--- report with at least one primary suspect drug and one reaction.
+-- as in the exploratory query. Drug names go through drug_name_map (salts
+-- and combinations normalised) and only clinical reactions are kept (see
+-- 03_classify_events.sql). The universe (n_total) is every deduplicated
+-- report with at least one primary suspect drug and one clinical reaction.
 
 
 -- 1. One row per (report, drug, event). A report with 2 drugs and 3 events
@@ -22,11 +24,13 @@ CREATE OR REPLACE TABLE report_drug_event AS
 SELECT DISTINCT
     dm.primaryid,
     dm.init_fda_dt,
-    dr.drug,
+    nm.drug,
     re.pt
 FROM demo_dedup AS dm
-JOIN drug_clean AS dr ON dr.primaryid = dm.primaryid AND dr.role_cod = 'PS'
-JOIN reac_clean AS re ON re.primaryid = dm.primaryid;
+JOIN drug_clean AS dr     ON dr.primaryid = dm.primaryid AND dr.role_cod = 'PS'
+JOIN drug_name_map AS nm  ON nm.drug_name = dr.drug_name
+JOIN reac_clean AS re     ON re.primaryid = dm.primaryid
+JOIN pt_class AS pc       ON pc.pt = re.pt AND pc.category = 'clinical';
 
 
 -- 2. The 2x2 table for every observed pair.

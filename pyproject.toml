@@ -30,3 +30,6 @@ target-version = "py310"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+"notebooks/*" = ["E501"]  # long SQL strings and prints are easier to read unwrapped
