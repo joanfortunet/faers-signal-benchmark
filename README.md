@@ -21,6 +21,13 @@ Pharmacovigilance relies on spontaneous reports to detect adverse drug reactions
 - **Evaluation:** AUC, average precision, precision@k, and time to detection using temporal validation.
 - **Stack:** Python, DuckDB/SQL, scikit-learn, statsmodels, Quarto, Streamlit, pytest, GitHub Actions.
 
+## Data
+
+- **Source:** FDA Adverse Event Monitoring System (AEMS, formerly FAERS), quarterly data extract files in ASCII format.
+- **Time window:** 2014 Q3 to 2026 Q2 (inclusive). Additional fields were introduced in 2014 Q3, so earlier files are not used.
+- **Download date:** 2026-10-24
+- **Note:** the files are raw and not cumulative. The same case can appear in several quarters, which is handled in the deduplication step.
+
 ## Project structure
 
 ```
@@ -35,7 +42,7 @@ Pharmacovigilance relies on spontaneous reports to detect adverse drug reactions
 
 ## Roadmap
 
-- [ ] Phase 0: Setup
+- [x] Phase 0: Setup
 - [ ] Phase 1: Data engineering
 - [ ] Phase 2: EDA and data quality
 - [ ] Phase 3: Methods
