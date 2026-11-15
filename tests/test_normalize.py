@@ -29,3 +29,8 @@ def test_combination_components_are_sorted_and_cleaned():
         "ACETAMINOPHEN\\HYDROCODONE"
     )
     assert normalize_drug_name("B\\A\\A") == "A\\B"
+
+
+def test_fumarate_esters_are_kept_whole():
+    assert strip_salt("DIMETHYL FUMARATE") == "DIMETHYL FUMARATE"
+    assert strip_salt("QUETIAPINE FUMARATE") == "QUETIAPINE"
