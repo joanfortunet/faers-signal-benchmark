@@ -55,14 +55,19 @@ WHERE version_rank = 1
 --    quarters, and we only want the rows published with the kept version.
 --    drug is the active ingredient (prod_ai), falling back to the brand name
 --    (drugname) when prod_ai is empty, in upper case with clean spaces.
+--    Biosimilars carry a 4-letter FDA suffix (ADALIMUMAB-ADAZ, -ATTO...):
+--    it is removed so that all of them count as the same molecule.
 CREATE OR REPLACE TABLE drug_clean AS
 SELECT DISTINCT
     d.primaryid,
     TRY_CAST(r.drug_seq AS INTEGER) AS drug_seq,
     r.role_cod,
-    UPPER(TRIM(REGEXP_REPLACE(
-        COALESCE(NULLIF(TRIM(r.prod_ai), ''), r.drugname), '\s+', ' ', 'g'
-    ), ' .'))                       AS drug,
+    REGEXP_REPLACE(
+        UPPER(TRIM(REGEXP_REPLACE(
+            COALESCE(NULLIF(TRIM(r.prod_ai), ''), r.drugname), '\s+', ' ', 'g'
+        ), ' .')),
+        '-[A-Z]{4}$', ''
+    )                               AS drug,
     r.drugname,
     r.prod_ai
 FROM demo_dedup AS d

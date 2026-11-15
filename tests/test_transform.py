@@ -23,7 +23,8 @@ def con():
     case 1: two versions (q1 and q2); only the q2 version must be kept
     case 2: two versions with the same fda_dt; the higher primaryid wins
     case 3: deleted by the FDA; must disappear
-    case 4: a normal single-version case
+    case 4: a normal single-version case (brand name only)
+    case 5: a biosimilar, whose suffix must be removed
     """
     con = duckdb.connect()
     create_tables(con, rebuild=True)
@@ -34,6 +35,7 @@ def con():
         {"quarter": "2020q1", "primaryid": "22", "caseid": "2", "fda_dt": "20200301"},
         {"quarter": "2020q1", "primaryid": "31", "caseid": "3", "fda_dt": "20200301"},
         {"quarter": "2020q2", "primaryid": "41", "caseid": "4", "fda_dt": "20200505"},
+        {"quarter": "2020q2", "primaryid": "51", "caseid": "5", "fda_dt": "20200505"},
     ])
     insert(con, "drug", [
         {"quarter": "2020q1", "primaryid": "11", "role_cod": "PS", "prod_ai": "OLD DRUG"},
@@ -43,6 +45,7 @@ def con():
         {"quarter": "2020q1", "primaryid": "31", "role_cod": "PS", "prod_ai": "SEMAGLUTIDE"},
         {"quarter": "2020q2", "primaryid": "41", "role_cod": "PS", "prod_ai": "",
          "drugname": "Aspirin"},
+        {"quarter": "2020q2", "primaryid": "51", "role_cod": "PS", "prod_ai": "Adalimumab-adaz"},
     ])
     insert(con, "reac", [
         {"quarter": "2020q1", "primaryid": "11", "pt": "Headache"},
@@ -51,6 +54,7 @@ def con():
         {"quarter": "2020q1", "primaryid": "22", "pt": "PANCREATITIS"},
         {"quarter": "2020q1", "primaryid": "31", "pt": "Pancreatitis"},
         {"quarter": "2020q2", "primaryid": "41", "pt": "Nausea"},
+        {"quarter": "2020q2", "primaryid": "51", "pt": "Injection site pain"},
     ])
     insert(con, "deleted", [{"quarter": "2020q2", "caseid": "3"}])
     run_all(con)
@@ -64,7 +68,7 @@ def query(con, sql):
 
 def test_keeps_latest_version_of_each_case(con):
     kept = query(con, "SELECT caseid, primaryid FROM demo_dedup ORDER BY caseid")
-    assert kept == [(1, 12), (2, 22), (4, 41)]
+    assert kept == [(1, 12), (2, 22), (4, 41), (5, 51)]
 
 
 def test_deleted_case_is_removed(con):
@@ -77,23 +81,24 @@ def test_old_versions_do_not_leak_drugs(con):
 
 def test_drug_names_are_normalised(con):
     drugs = query(con, "SELECT DISTINCT drug FROM drug_clean WHERE role_cod = 'PS' ORDER BY 1")
-    assert drugs == [("ASPIRIN",), ("SEMAGLUTIDE",)]
+    assert drugs == [("ADALIMUMAB",), ("ASPIRIN",), ("SEMAGLUTIDE",)]
 
 
 def test_reaction_terms_are_case_insensitive(con):
     pts = query(con, "SELECT DISTINCT pt FROM reac_clean ORDER BY 1")
-    assert pts == [("nausea",), ("pancreatitis",)]
+    assert pts == [("injection site pain",), ("nausea",), ("pancreatitis",)]
 
 
 def test_contingency_table(con):
     # Reports kept: 12 (semaglutide: pancreatitis, nausea),
-    #               22 (semaglutide: pancreatitis), 41 (aspirin: nausea)
+    #               22 (semaglutide: pancreatitis), 41 (aspirin: nausea),
+    #               51 (adalimumab: injection site pain)
     row = query(con, """
         SELECT a, b, c, d, n_drug, n_event, n_total
         FROM drug_event_counts
         WHERE drug = 'SEMAGLUTIDE' AND pt = 'pancreatitis'
     """)
-    assert row == [(2, 0, 0, 1, 2, 2, 3)]
+    assert row == [(2, 0, 0, 2, 2, 2, 4)]
 
 
 def test_every_table_adds_up_to_the_total(con):
