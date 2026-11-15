@@ -16,5 +16,9 @@ dependencies:
   - jupyterlab
   - pytest
   - ruff
+  - streamlit
+  - altair
+  - nbconvert
+  - quarto
   - pip:
       - -e .
