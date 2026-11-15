@@ -12,7 +12,8 @@ Rules (applied to every component of a combination):
 3. Sort the components of a combination alphabetically, without repeats.
 
 Esters that change the pharmacology (PROPIONATE, FUROATE, VALERATE...)
-are deliberately NOT removed.
+are deliberately NOT removed, and fumarate esters such as DIMETHYL FUMARATE
+are kept whole (see KEEP_WHOLE).
 """
 
 HYDRATES = {
@@ -29,6 +30,12 @@ SALTS = {
     "HYCLATE", "MALATE", "OXALATE", "NAPSYLATE", "LYSINE", "ERBUMINE",
 }
 
+# Molecules whose last word looks like a salt but is part of the active
+# moiety (esters): stripping it would leave a meaningless name (DIMETHYL).
+KEEP_WHOLE = {
+    "DIMETHYL FUMARATE", "DIROXIMEL FUMARATE", "MONOMETHYL FUMARATE",
+}
+
 INORGANIC_BASES = {
     "ALUMINIUM", "ALUMINUM", "AMMONIUM", "BARIUM", "CALCIUM", "CHROMIC", "COPPER",
     "CUPRIC", "FERRIC", "FERROUS", "IRON", "LITHIUM", "MAGNESIUM", "MANGANESE",
@@ -38,6 +45,8 @@ INORGANIC_BASES = {
 
 def strip_salt(component):
     """'SERTRALINE HYDROCHLORIDE' -> 'SERTRALINE'; 'LITHIUM CARBONATE' stays."""
+    if component in KEEP_WHOLE:
+        return component
     words = component.split()
     if len(words) > 1 and words[-1] in HYDRATES:
         words = words[:-1]

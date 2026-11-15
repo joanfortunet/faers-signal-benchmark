@@ -55,3 +55,30 @@ def test_fit_prior_recovers_simulated_parameters():
     fitted = fit_prior(a[keep], e[keep])
     assert fitted.p == pytest.approx(true.p, abs=0.08)
     assert fitted.alpha2 / fitted.beta2 == pytest.approx(true.alpha2 / true.beta2, rel=0.1)
+
+
+def _numeric_posterior(a, e, prior, grid):
+    """Unnormalised posterior density of lambda on a grid, computed from scratch:
+    prior density (mixture of two gammas) x Poisson likelihood."""
+    prior_density = prior.p * stats.gamma.pdf(grid, prior.alpha1, scale=1 / prior.beta1) + (
+        1 - prior.p
+    ) * stats.gamma.pdf(grid, prior.alpha2, scale=1 / prior.beta2)
+    return prior_density * stats.poisson.pmf(a, grid * e)
+
+
+@pytest.mark.parametrize("a,e", [(1, 0.2), (3, 0.5), (10, 1.0), (50, 20.0)])
+def test_closed_form_matches_numerical_integration(a, e):
+    """Independent check of the posterior formulas (a substitute for openEBGM)."""
+    prior = Prior(alpha1=0.3, beta1=0.2, alpha2=2.5, beta2=2.0, p=0.4)
+    grid = np.exp(np.linspace(-12, 6, 400_001))  # log-spaced lambda grid
+    density = _numeric_posterior(a, e, prior, grid) * grid  # change of variable to log
+    weights = density / density.sum()
+    cdf = np.cumsum(weights)
+    expected_ebgm = np.exp(np.sum(weights * np.log(grid)))
+    expected_eb05 = grid[np.searchsorted(cdf, 0.05)]
+    expected_eb95 = grid[np.searchsorted(cdf, 0.95)]
+
+    result = ebgm(np.array([a]), np.array([e]), prior)
+    assert result["ebgm"][0] == pytest.approx(expected_ebgm, rel=1e-3)
+    assert result["eb05"][0] == pytest.approx(expected_eb05, rel=1e-3)
+    assert result["eb95"][0] == pytest.approx(expected_eb95, rel=1e-3)
