@@ -1,0 +1,32 @@
+category,pattern,note
+lack_of_efficacy,^drug ineffective,"Includes 'drug ineffective for unapproved indication'"
+lack_of_efficacy,^therapeutic product effect (incomplete|decreased|delayed|variable),
+lack_of_efficacy,^(treatment failure|therapy non-responder|therapy partial responder)$,
+off_label_or_misuse,off label use,"Includes 'suspected off label use'"
+off_label_or_misuse,unapproved indication,
+off_label_or_misuse,^intentional (product|device) (misuse|use issue),
+off_label_or_misuse,^prescription drug used without a prescription$,
+off_label_or_misuse,overdose$,"Accidental, intentional or prescribed overdose"
+off_label_or_misuse,underdose$,
+medication_error,medication error,
+medication_error,dose omission,
+medication_error,^(wrong|incorrect) ,
+medication_error,inappropriate schedule,
+medication_error,(prescribing|dispensing|administration|preparation|storage|transcription) (error|issue),
+medication_error,administered (at inappropriate site|to patient of inappropriate age),
+medication_error,^(extra dose administered|contraindicated product administered|expired product administered|recalled product administered)$,
+medication_error,^intercepted ,
+medication_error,^intentional dose omission$,
+medication_error,(dose|dosing|therapy|titration|vaccination|monitoring|calculation|use) error$,"Not just 'error$': 'refractive error' is clinical"
+medication_error,^labelled drug-.*interaction,
+medication_error,^(increased dose administered|unadjusted dose administered|booster dose missed|drug dose titration not performed)$,
+medication_error,^(drug titration issue|duplicate therapy issue)$,
+product_or_device_issue,\bproduct\b,"Word boundary: does not match 'productive cough'"
+product_or_device_issue,^device ,
+product_or_device_issue,manufacturing,
+product_or_device_issue,device used$,"Expired, poor quality or contraindicated device used"
+product_or_device_issue,(packaging design|delivery system|pump reservoir|device compatibility|cell bank|cell bank management|cell culture production|aseptic process simulation|mobile medical application|unevaluable device) issue$,
+product_or_device_issue,^(no device malfunction|device-device incompatibility)$,
+product_or_device_issue,^(syringe issue|needle issue|embedded device|unintentional medical device removal)$,
+exposure,exposure (during|before|via|to),"Pregnancy, occupational and accidental exposures"
+administrative,^(insurance issue|inability to afford medication|no adverse event|hospitalisation|therapy cessation|therapy interrupted|therapy change|treatment noncompliance)$,
