@@ -11,7 +11,10 @@ license = { text = "MIT" }
 requires-python = ">=3.10"
 dependencies = [
     "duckdb>=1.1",
+    "numpy",
+    "pandas",
     "requests",
+    "scipy",
 ]
 
 [project.optional-dependencies]
