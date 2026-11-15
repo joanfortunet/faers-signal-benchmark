@@ -1,4 +1,4 @@
-.PHONY: help env-check lint test download load transform data
+.PHONY: help env-check lint test download load transform scores data
 
 help:
 	@echo "Available commands:"
@@ -8,6 +8,7 @@ help:
 	@echo "  make download   - download FAERS quarterly files into data/raw"
 	@echo "  make load       - load new quarters into data/faers_warehouse.duckdb"
 	@echo "  make transform  - deduplicate and build the drug-event tables"
+	@echo "  make scores     - score every drug-event pair with PRR, ROR, BCPNN and EBGM"
 	@echo "  make data       - download + load + transform"
 
 env-check:
@@ -27,5 +28,8 @@ load:
 
 transform:
 	python -m faers.transform
+
+scores:
+	python -m faers.scores
 
 data: download load transform

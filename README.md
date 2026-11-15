@@ -50,6 +50,19 @@ Main tables produced:
 
 [`notebooks/01_eda.ipynb`](notebooks/01_eda.ipynb) describes the cleaned data (48 quarters, 19.0 M report rows → 16.2 M unique cases): who reports, missing values, top drugs and reactions, the share of non-clinical terms and how sparse the drug-event table is. It also shows a clear case of stimulated reporting (ranitidine, 46 % of reports filed by lawyers after the 2019–2020 NDMA recall).
 
+## Signal detection methods
+
+`make scores` (module `faers.scores`) scores the 2.29 M drug-event pairs with four disproportionality methods, all implemented from scratch in `src/faers/methods.py` and `src/faers/ebgm.py`:
+
+| Method | Estimate | Signal when | Reference |
+|---|---|---|---|
+| PRR | Proportional reporting ratio, 95 % CI | a ≥ 3, PRR ≥ 2 and χ² ≥ 4 | Evans et al. (2001) |
+| ROR | Reporting odds ratio, 95 % CI | a ≥ 3 and lower bound > 1 | van Puijenbroek et al. (2002) |
+| BCPNN | Information component (IC) with shrinkage | IC025 > 0 | Norén et al. (2006, 2013) |
+| MGPS | Empirical Bayes geometric mean (EBGM), two-gamma prior fitted on the data | EB05 ≥ 2 | DuMouchel (1999) |
+
+Results are stored in the `signal_scores` table (and the fitted prior in `ebgm_prior`). `counts_as_of(con, date)` rebuilds the 2x2 table with only the cases received up to a date, for the time-to-detection analysis.
+
 ## Project structure
 
 ```
@@ -75,6 +88,9 @@ Main tables produced:
   - [x] Non-clinical preferred terms excluded
   - [x] EDA notebook
 - [ ] Phase 3: Methods
+  - [x] PRR, ROR, BCPNN and EBGM (own implementations, tested)
+  - [ ] Validation of EBGM against openEBGM
+  - [ ] Machine learning models
 - [ ] Phase 4: Evaluation
 - [ ] Phase 5: Case studies and communication
 - [ ] Phase 6: Polish
