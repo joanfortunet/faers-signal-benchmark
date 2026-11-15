@@ -54,15 +54,34 @@ def already_downloaded(folder):
     return any(path.suffix.lower() == ".txt" for path in folder.rglob("*"))
 
 
-def download(url, destination):
-    """Download url into destination. Return False if the file does not exist."""
-    response = requests.get(url, stream=True, timeout=60)
-    if response.status_code == 404:
-        return False
-    response.raise_for_status()
+def download(url, destination, attempts=5):
+    """Download url into destination. Return False if the file does not exist.
+
+    Data goes first to a '.part' file. If the connection drops, the next
+    attempt (or the next run of the script) asks the server only for the
+    missing bytes (HTTP Range request) instead of starting from zero.
+    """
     partial = destination.with_suffix(".part")
-    with open(partial, "wb") as file:
-        file.writelines(response.iter_content(chunk_size=1024 * 1024))
+    for attempt in range(1, attempts + 1):
+        done = partial.stat().st_size if partial.exists() else 0
+        headers = {"Range": f"bytes={done}-"} if done else {}
+        try:
+            response = requests.get(url, headers=headers, stream=True, timeout=60)
+            if response.status_code == 404:
+                return False
+            if response.status_code == 416:  # nothing left to download
+                break
+            response.raise_for_status()
+            # 206 = the server sent only the missing part; 200 = the whole file again.
+            mode = "ab" if response.status_code == 206 else "wb"
+            with open(partial, mode) as file:
+                file.writelines(response.iter_content(chunk_size=1024 * 1024))
+            break
+        except requests.RequestException as error:
+            if attempt == attempts:
+                raise
+            print(f"  connection problem ({error}), retrying...")
+            time.sleep(5 * attempt)
     partial.rename(destination)
     return True
 
